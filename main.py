@@ -265,21 +265,22 @@ Other: history, help, exit, quit"""
 # ---- History / Completion ----
 _history=[]
 def load_history():
-    if READLINE_AVAILABLE:
-        try: readline.read_history_file(HISTORY_FILE)
-        except: pass
-    else:
-        if os.path.exists(HISTORY_FILE):
-            for l in open(HISTORY_FILE): _history.append(l.strip())
+    """
+    Previously loaded commands from disk. 
+    Now: start with empty history for each session.
+    """
+    # Do nothing — empty history
+    pass
 
 def save_history():
-    if READLINE_AVAILABLE:
-        try: readline.write_history_file(HISTORY_FILE)
-        except: pass
-    else:
-        open(HISTORY_FILE,"w").write("\n".join(_history[-HISTORY_MAX:]))
+    """
+    Previously saved commands to disk. 
+    Now: we don't persist anything.
+    """
+    # Do nothing — don't save to disk
 
-def show_history(): return "\n".join(f"{i+1} {_history[i]}" for i in range(len(_history)))
+def show_history(): 
+    return "\n".join(f"{i+1} {_history[i]}" for i in range(len(_history)))
 
 def completer(text,state):
     buffer=readline.get_line_buffer()
