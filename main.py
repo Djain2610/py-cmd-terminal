@@ -265,15 +265,15 @@ Other: history, help, exit, quit"""
 # ---- History / Completion ----
 _history=[]
 def load_history():
-    # Disabled: do not load from file to avoid persisting previous commands
+    # Prevent readline from loading any previous history
     pass
 
 def save_history():
-    # Disabled: do not save to file to avoid persisting history
+    # Prevent saving to file
     pass
 
 def show_history():
-    # Optional: still works in-memory for current session
+    # Only shows in-memory history for this session
     return "\n".join(f"{i+1} {_history[i]}" for i in range(len(_history)))
 
 # At the start of main_loop(), clear in-memory history
@@ -332,20 +332,15 @@ def execute_line_internal(line,record_history=True):
 # ---- Main ----
 def initialize():
     if READLINE_AVAILABLE:
-        readline.set_completer(completer); readline.parse_and_bind("tab: complete")
-    load_history()
-    if not PSUTIL_AVAILABLE: safe_print("[notice] psutil not installed")
-    if not READLINE_AVAILABLE: safe_print("[notice] readline not installed")
+        readline.set_completer(completer)
+        readline.parse_and_bind("tab: complete")
+        # Do NOT call readline.read_history_file(HISTORY_FILE)
+    _history.clear()  # ensure fresh session
+    if not PSUTIL_AVAILABLE:
+        safe_print("[notice] psutil not installed")
+    if not READLINE_AVAILABLE:
+        safe_print("[notice] readline not installed")
 
-def main_loop():
-    initialize(); safe_print("pyterminal ready. Type 'help' for commands.")
-    try:
-        while True:
-            try: line=input(f"\033[1;32m{cmd_whoami([])}\033[0m:\033[1;34m{os.getcwd()}\033[0m$ ")
-            except EOFError: break
-            out=execute_line_internal(line)
-            if out: safe_print(out)
-    except KeyboardInterrupt: safe_print("\nInterrupted.")
-    finally: save_history()
+
 
 if __name__=="__main__": main_loop()
