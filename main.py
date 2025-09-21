@@ -265,22 +265,35 @@ Other: history, help, exit, quit"""
 # ---- History / Completion ----
 _history=[]
 def load_history():
-    """
-    Previously loaded commands from disk. 
-    Now: start with empty history for each session.
-    """
-    # Do nothing — empty history
+    # Disabled: do not load from file to avoid persisting previous commands
     pass
 
 def save_history():
-    """
-    Previously saved commands to disk. 
-    Now: we don't persist anything.
-    """
-    # Do nothing — don't save to disk
+    # Disabled: do not save to file to avoid persisting history
+    pass
 
-def show_history(): 
+def show_history():
+    # Optional: still works in-memory for current session
     return "\n".join(f"{i+1} {_history[i]}" for i in range(len(_history)))
+
+# At the start of main_loop(), clear in-memory history
+def main_loop():
+    initialize()
+    _history.clear()  # ensures fresh session
+    safe_print("pyterminal ready. Type 'help' for commands.")
+    try:
+        while True:
+            try:
+                line = input(f"\033[1;32m{cmd_whoami([])}\033[0m:\033[1;34m{os.getcwd()}\033[0m$ ")
+            except EOFError:
+                break
+            out = execute_line_internal(line)
+            if out:
+                safe_print(out)
+    except KeyboardInterrupt:
+        safe_print("\nInterrupted.")
+    finally:
+        save_history()
 
 def completer(text,state):
     buffer=readline.get_line_buffer()
