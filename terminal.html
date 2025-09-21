@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Terminal Emulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            background-color: #2d2d2d;
+            padding: 10px 15px;
+            border-bottom: 1px solid #3c3c3c;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-title {
+            font-weight: bold;
+            color: #4ec9b0;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .clear-btn {
+            background-color: #3c3c3c;
+            color: #d4d4d4;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .clear-btn:hover {
+            background-color: #4c4c4c;
+        }
+
+        .terminal-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 15px;
+        }
+
+        #terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #1e1e1e;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .prompt-line {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .prompt {
+            color: #4ec9b0; /* Green */
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        .directory {
+            color: #569cd6; /* Blue */
+            margin-right: 8px;
+        }
+
+        .input-line {
+            display: flex;
+            align-items: center;
+        }
+
+        #command-input {
+            flex: 1;
+            background-color: transparent;
+            color: #d4d4d4;
+            border: none;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            outline: none;
+            padding: 5px 0;
+        }
+
+        #command-input::placeholder {
+            color: #888;
+        }
+
+        .command-output {
+            color: #d4d4d4;
+            margin-bottom: 5px;
+        }
+
+        .command-output.command {
+            color: #4ec9b0; /* Green for commands */
+        }
+
+        .command-output.error {
+            color: #f48771; /* Red for errors */
+        }
+
+        .command-output.success {
+            color: #d4d4d4; /* Default for output */
+        }
+
+        /* Scrollbar styling */
+        #terminal-output::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #terminal-output::-webkit-scrollbar-track {
+            background: #2d2d2d;
+        }
+
+        #terminal-output::-webkit-scrollbar-thumb {
+            background: #4c4c4c;
+            border-radius: 4px;
+        }
+
+        #terminal-output::-webkit-scrollbar-thumb:hover {
+            background: #5c5c5c;
+        }
+
+        /* Animation for new lines */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.2s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-header">
+        <div class="terminal-title">Python Terminal Emulator</div>
+        <div class="terminal-controls">
+            <button id="clear-btn" class="clear-btn">Clear</button>
+        </div>
+    </div>
+    
+    <div class="terminal-container">
+        <div id="terminal-output"></div>
+        <div class="input-line">
+            <span class="prompt" id="current-prompt">user:</span>
+            <span class="directory" id="current-directory">/home/user</span>
+            <span class="prompt">$ </span>
+            <input type="text" id="command-input" autocomplete="off" autofocus placeholder="Type a command...">
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const terminalOutput = document.getElementById('terminal-output');
+            const commandInput = document.getElementById('command-input');
+            const clearBtn = document.getElementById('clear-btn');
+            const currentPrompt = document.getElementById('current-prompt');
+            const currentDirectory = document.getElementById('current-directory');
+            
+            // Initialize with welcome message
+            addOutputLine('Python Terminal Emulator Ready', 'success');
+            addOutputLine('Type "help" for available commands.', 'success');
+            
+            // Get initial prompt info
+            updatePrompt();
+            
+            // Focus input on load
+            commandInput.focus();
+            
+            // Handle command submission
+            commandInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const command = commandInput.value.trim();
+                    if (command) {
+                        executeCommand(command);
+                    }
+                    commandInput.value = '';
+                }
+            });
+            
+            // Clear button handler
+            clearBtn.addEventListener('click', function() {
+                terminalOutput.innerHTML = '';
+            });
+            
+            // Update prompt when window is focused (to refresh directory)
+            window.addEventListener('focus', updatePrompt);
+            
+            // Function to execute command
+            function executeCommand(command) {
+                // Display the command
+                addOutputLine(`$ ${command}`, 'command');
+                
+                // Send to backend
+                fetch('/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ command: command })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Display the output
+                    if (data.output) {
+                        addOutputLine(data.output, 'success');
+                    }
+                    if (data.error) {
+                        addOutputLine(data.error, 'error');
+                    }
+                    // Update prompt after successful execution
+                    updatePrompt();
+                })
+                .catch(error => {
+                    addOutputLine(`Error communicating with backend: ${error.message}`, 'error');
+                });
+            }
+            
+            // Function to add output line to terminal
+            function addOutputLine(text, type) {
+                const line = document.createElement('div');
+                line.className = `command-output ${type} fade-in`;
+                line.textContent = text;
+                terminalOutput.appendChild(line);
+                
+                // Scroll to bottom
+                terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            }
+            
+            // Function to update prompt
+            function updatePrompt() {
+                // In a real implementation, we'd fetch the current user and directory
+                // For now, we'll simulate with static values
+                currentPrompt.textContent = 'user:';
+                currentDirectory.textContent = '/home/user';
+            }
+        });
+    </script>
+</body>
+</html>

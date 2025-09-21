@@ -1,0 +1,5 @@
+Flask==2.3.3
+requests==2.31.0
+# Optional packages for enhanced functionality:
+# psutil==5.9.5  # Required for cpu, mem, ps, top commands
+# readline==6.2.5  # Required for command completion (Linux/Mac)
